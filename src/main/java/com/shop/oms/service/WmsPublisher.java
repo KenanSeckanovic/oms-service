@@ -12,7 +12,7 @@ public class WmsPublisher {
 
   public WmsPublisher(RabbitTemplate rabbitTemplate,
                       @Value("${oms.wms.exchange}") String exchange,
-                      @Value("${oms.wms.routing-key:oms.wms.command}") String routingKey) {
+                      @Value("${oms.wms.routing-key:order_created}") String routingKey) {
     this.rabbitTemplate = rabbitTemplate;
     this.exchange = exchange;
     this.routingKey = routingKey;

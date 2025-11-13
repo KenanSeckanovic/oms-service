@@ -17,9 +17,9 @@ oms:
   payment:
     base-url: ${PAYMENT_URL:http://localhost:8090}
   wms:
-    exchange: oms.wms.exchange
-    routing-key: oms.wms.command
-    status-queue: wms.status.events
+    exchange: amq.direct
+    routing-key: order_created
+    status-queue: inventory_queue
 
 logging:
   level:

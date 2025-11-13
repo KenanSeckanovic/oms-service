@@ -7,6 +7,7 @@ import com.shop.oms.dto.CreateOrderRequest;
 import com.shop.oms.dto.CreateOrderResponse;
 import com.shop.oms.dto.PaymentRequest;
 import com.shop.oms.repo.InMemoryOrderRepository;
+import com.shop.oms.service.SendNestMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -18,9 +19,9 @@ public class OrderService {
     private final InMemoryOrderRepository repo;
     private final InventoryClient inventory;
     private final PaymentClient payment;
-    private final WmsPublisher wms;
+    private final SendNestMessage wms;
 
-    public OrderService(InMemoryOrderRepository repo, InventoryClient inventory, PaymentClient payment, WmsPublisher wms) {
+    public OrderService(InMemoryOrderRepository repo, InventoryClient inventory, PaymentClient payment, SendNestMessage wms) {
         this.repo = repo;
         this.inventory = inventory;
         this.payment = payment;
@@ -68,7 +69,12 @@ public class OrderService {
         log.info("Payment ok for order {}", order.getOrderId());
 
         // 4) WMS: Fulfillment-Befehl senden
-        wms.sendFulfillmentCommand(order.getOrderId());
+        try{
+            wms.sendMessage("order_created", "Bestellung mit der Nummer" + order.getOrderId() + "bestätigt" );
+        } 
+        catch(Exception ex) {
+            log.warn("Konnte sich nicht mit RabbitMq verbinden");
+        }
         order.setStatus(OrderStatus.SENT_TO_WMS);
         repo.save(order);
         log.info("Sent to WMS: {}", order.getOrderId());
