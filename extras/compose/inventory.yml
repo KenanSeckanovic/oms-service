@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  inventory-service:
+    image: mika490/inventory:2025.10.1-alpine
+    container_name: inventory-service
+    restart: unless-stopped
+    ports:
+      - "50051:50051"  # gRPC-Port
+    volumes:
+      - ./src/service/Lager.json:/opt/app/dist/service/Lager.json:ro
+    environment:
+      NODE_ENV: production

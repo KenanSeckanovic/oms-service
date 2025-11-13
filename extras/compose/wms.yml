@@ -1,0 +1,16 @@
+version: "3.9"
+
+# Es muss zuerst das RabbitMQ-Compose gestartet werden, da der Warhouse-Service davon abhängt!!!
+services:
+  warhouse:
+    image: mika490/messaging:2025.10.1-alpine
+    container_name: warhouse_management
+    environment:
+      - RABBITMQ_URL=amqp://user:password@rabbitmq:5672
+    networks:
+      - rabbitmq_wms_net
+    restart: unless-stopped
+
+networks:
+  rabbitmq_wms_net:
+    external: true

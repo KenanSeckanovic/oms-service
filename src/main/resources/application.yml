@@ -1,0 +1,27 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: oms
+  rabbitmq:
+    host: ${RABBIT_HOST}
+    port: ${RABBIT_PORT}
+    username: ${RABBIT_USER}
+    password: ${RABBIT_PASS}
+
+oms:
+  inventory:
+    host: ${INV_HOST:localhost}
+    port: ${INV_PORT:50051}
+  payment:
+    base-url: ${PAYMENT_URL:http://localhost:8090}
+  wms:
+    exchange: oms.wms.exchange
+    routing-key: oms.wms.command
+    status-queue: wms.status.events
+
+logging:
+  level:
+    root: INFO
+    com.shop.oms: DEBUG

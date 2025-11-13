@@ -1,0 +1,97 @@
+networks:
+  shop-net:
+    driver: bridge
+
+services:
+  # RabbitMQ Broker
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    restart: unless-stopped
+    ports:
+      - "${RABBIT_PORT:-5672}:5672"
+      - "${RABBIT_MGMT_PORT:-15672}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASS}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shop-net
+
+  # Inventory Service (gRPC)
+  inventory:
+    image: ${INVENTORY_IMAGE}
+    restart: unless-stopped
+    ports:
+      - "${INVENTORY_PORT}:50051"
+    volumes:
+      - ./src/service/Lager.json:/opt/app/dist/service/Lager.json:ro
+    networks:
+      - shop-net
+    depends_on:
+      rabbitmq:
+        condition: service_started
+
+  # Payment Service (REST)
+  payment:
+    image: dodi1012/payment-service:latest
+    restart: unless-stopped
+    ports:
+      - "${PAYMENT_PORT}:8082"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8082
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBIT_USER}
+      RABBITMQ_PASS: ${RABBIT_PASS}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - shop-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/api/payment/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # Warehouse Management System (WMS)
+  wms:
+    image: ${WMS_IMAGE}
+    restart: unless-stopped
+    environment:
+      RABBITMQ_URL: amqp://${RABBIT_USER}:${RABBIT_PASS}@rabbitmq:${RABBIT_PORT}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - shop-net
+
+  # Order Management System (dein Projekt)
+  oms:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${OMS_PORT}:8080"
+    environment:
+      INV_HOST: inventory
+      INV_PORT: 50051
+      PAYMENT_URL: http://payment:8082
+      RABBIT_HOST: rabbitmq
+      RABBIT_PORT: 5672
+      RABBIT_USER: ${RABBIT_USER}
+      RABBIT_PASS: ${RABBIT_PASS}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      inventory:
+        condition: service_started
+      payment:
+        condition: service_started
+      wms:
+        condition: service_started
+    networks:
+      - shop-net
